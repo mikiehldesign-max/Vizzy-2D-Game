@@ -1432,7 +1432,7 @@
             platforms.forEach(p => {
                 if (p.initialY) {
                     // Increased amplitude and speed for floating platforms
-                    p.y = p.initialY + Math.sin(Date.now() * 0.002 + p.x) * 20;
+                    p.y = p.initialY + Math.sin(globalGameTime * 0.033 + p.x) * 20;
                 }
             });
 
@@ -1816,8 +1816,8 @@
                 }
 
                 const scale = layer.scale || 1.0;
-                const drawWidth = layer.img.width * scale;
-                const drawHeight = layer.img.height * scale;
+                let drawWidth = layer.img.width * scale;
+                let drawHeight = layer.img.height * scale; if (drawHeight < canvas.height) { const coverScale = canvas.height / layer.img.height; drawWidth = layer.img.width * coverScale; drawHeight = canvas.height; }
 
                 let yPos = canvas.height - drawHeight; // Default to bottom anchor
                 if (layer.alignTop) {
