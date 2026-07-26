@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>The Adventures of VIZZY!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Basic page setup */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        canvas {
+            display: none; /* Initially hidden until game starts */
+            background-color: #0c0a1a;
+            outline: none; /* Removes the focus border from the canvas */
+        }
+
+        #menu-bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            display: block;
+        }
+
+        /* Styles for overlay screens (menu, game over, etc.) */
+        #menu-screen, .message-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            z-index: 1; /* Ensure menu is on top of its background */
+        }
+
+        .message-screen {
+            display: none; /* Hidden by default */
+            background-color: rgba(12, 10, 26, 0.8);
+        }
+
+        .game-logo {
+            max-width: 80%; /* Responsive logo size */
+            width: 600px;    /* Max size for larger screens */
+            margin-bottom: 40px;
+            margin-top: 80px; /* Moved down more */
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        .sub-logo {
+            width: 100px;
+            max-width: 20%;
+            margin-bottom: 20px;
+            margin-top: -160px; /* Moved further up */
+        }
+
+        .start-button {
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            background-color: #222;
+            color: #fff;
+            border: 2px solid #50a0ff; /* Changed to blue */
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+            margin: 10px; /* Spacing for level select buttons */
+        }
+
+        .start-button:hover {
+            background-color: #50a0ff; /* Changed to blue */
+            color: #222;
+        }
+
+        /* Style for the currently selected button for keyboard navigation */
+        .start-button.selected {
+            border-color: #ffeb3b; /* A bright yellow */
+            box-shadow: 0 0 15px #ffeb3b;
+        }
+
+        .controls-info {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #a0a0c0;
+        }
+
+        .message-title {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .menu-button-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-button-container.vertical {
+            flex-direction: column;
+        }
+
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 2rem;
+            color: #FFD700;
+            display: none; /* Initially hidden */
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            padding: 10px 15px; /* Add some spacing */
+            border-radius: 10px; /* Rounded corners */
+            z-index: 10;
+        }
+
+        #health-bar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: none; /* Initially hidden */
+            z-index: 10;
+        }
+
+        /* Removed #flight-timer-display CSS */
+
+        #mute-button {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: none; /* Initially hidden */
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #a0a0c0;
+            color: #a0a0c0;
+            padding: 8px 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+
+        #mute-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .heart {
+            width: 30px;
+            height: 30px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="red"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>') no-repeat center center;
+            background-size: contain;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        #mobile-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            display: none; /* Initially hidden, controlled by JS */
+            z-index: 20;
+        }
+
+        .mobile-button {
+            position: absolute;
+            bottom: 30px;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.7);
+            user-select: none;
+            -webkit-user-select: none; /* For Safari */
+        }
+        .mobile-button:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #mobile-left { left: 30px; }
+        #mobile-right { left: 120px; }
+        #mobile-jump { right: 30px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- This is the animated background for the main menu -->
+    <canvas id="menu-bg-canvas"></canvas>
+
+    <!-- This is the main menu that appears on load -->
+    <div id="menu-screen">
+        <img src="https://i.imgur.com/BFmcRAV.png" alt="Studio Logo" class="sub-logo" onerror="this.style.display='none'">
+        <img src="https://i.imgur.com/Gy9xq20.png" alt="The Adventures of VIZZY! Logo" class="game-logo" onerror="this.style.display='none'">
+        <div class="menu-button-container">
+            <button id="start-level-1" class="start-button">Level 1</button>
+            <button id="start-level-2" class="start-button">Level 2</button> <!-- Button text remains Level 2 -->
+            <button id="start-level-3" class="start-button">Level 3</button> <!-- Button text remains Level 3 -->
+        </div>
+        <p class="controls-info">Hit Spacebar to Jump</p>
+    </div>
+
+    <!-- The canvas where the game will be drawn -->
+    <canvas id="game-canvas" tabindex="1"></canvas>
+
+    <!-- Game UI elements -->
+    <div id="score-display">Score: 0</div>
+    <div id="health-bar">
+        <div class="heart"></div>
+        <div class="heart"></div>
+        <div class="heart"></div>
+        <div class="heart"></div>
+    </div>
+    <!-- Removed flight-timer-display div -->
+
+    <!-- Screen for game over message -->
+    <div id="game-over-screen" class="message-screen">
+        <h1 class="message-title" style="color: #ff5050;">Game Over</h1>
+        <div class="menu-button-container">
+            <button id="restart-button-lose" class="start-button">Try Again</button>
+            <button id="main-menu-button-lose" class="start-button">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Screen for winning message -->
+    <div id="win-screen" class="message-screen">
+        <h1 id="win-message-title" class="message-title" style="color: #50ff50;">You Win!</h1>
+        <h2 id="final-score-display" class="message-title" style="font-size: 2rem; margin-top: -10px; display: none;"></h2>
+        <div class="menu-button-container vertical">
+            <button id="next-level-button" class="start-button">Next Level</button>
+            <button id="play-again-button-win" class="start-button">Play Again</button>
+            <button id="main-menu-button-win" class="start-button">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Screen for the pause menu -->
+    <div id="pause-screen" class="message-screen">
+        <h1 class="message-title" style="color: #6ef3ff;">Paused</h1>
+        <div class="menu-button-container">
+            <button id="continue-button" class="start-button">Continue</button>
+            <button id="main-menu-button" class="start-button">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Mute Button -->
+    <button id="mute-button">Mute Music</button>
+
+    <!-- Mobile Controls (hidden during gameplay by JS) -->
+    <div id="mobile-controls">
+        <div id="mobile-left" class="mobile-button">◀</div>
+        <div id="mobile-right" class="mobile-button">▶</div>
+        <div id="mobile-jump" class="mobile-button">▲</div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="jump-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/5199dc4aed4cb2c5b8ce154b0ce6c12512d8ddc5/video_game_jump-%232-1757373234050.mp3" preload="auto"></audio>
+    <audio id="stomp-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/55eed87b378c083265abf013ab25d3401452cdcd/video_game_boink-%232-1757614045485.mp3" preload="auto"></audio>
+    <audio id="powerup-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/6c6a286d31b0d7a3990a6106c4b40a78a431002d/video_game_level_up-1757631129344.mp3" preload="auto"></audio>
+    <audio id="wing-flap-sound" src="https://github.com/mikiehldesign-max/gamesounds/raw/480d537f4a4e791e1d2c70a55bc8987f8b4bd9bb/video_game_wings_woo-1757631836548.mp3" loop preload="auto"></audio>
+    <audio id="bg-music-level1" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/95c71d1ebbf4b111c5b7c64c8aa46eb87a6821ca/Level%20one%20music.mp3" loop preload="auto"></audio>
+    <audio id="bg-music-level2" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/2747a09b745925e597771cfcda363bbb8c6a927c/Level%202%20music.mp3" loop preload="auto"></audio> <!-- Original Level 2 Music -->
+    <audio id="bg-music-level3" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/201ecd7785aee90794f8d9386662e964945469b6/Level%203%20music.mp3" loop preload="auto"></audio> <!-- Original Level 3 Music -->
+    <audio id="hurt-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/ec8cf67151e6a5f9bf534aa4e28604f510f40807/video_game_hurt_anim-%232-1757374372745.mp3" preload="auto"></audio>
+    <audio id="walk-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/35d8b931542d32319974603df36fa359ad4b9752/video_game_walking_o-%233-1757374526555.mp3" loop preload="auto"></audio>
+    <audio id="coin-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/03783d19d9eaf37d590fc3318ea2c66949f1a935/video_game_chime-1757374725641.mp3" preload="auto"></audio>
+    <audio id="game-over-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/770d976ca8af358c9e1573a361356ce25f6f8772/video_game_game_over-%232-1757376415339.mp3" preload="auto"></audio>
+    <audio id="win-sound" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/00dd6a638af1e23448f6ccaee5b7a6d626c857ec/video_game_win-%233-1757377578182.mp3" preload="auto"></audio>
+    <audio id="menu-music" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/4e60289f0981907efe9826fcc952da2a23fea5e1/Untitled%20(3).mp3" loop preload="auto"></audio>
+    <audio id="game-over-music" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/92a15bfb8e45064b36b85751613adaedaa006a1c/Game%20over%20music.mp3" loop preload="auto"></audio>
+    <audio id="win-music" src="https://raw.githubusercontent.com/mikiehldesign-max/gamesounds/95c71d1ebbf4b111c5b7c64c8aa46eb87a6821ca/Win%20music.mp3" loop preload="auto"></audio>
+
+    <script>
+        // --- DOM Elements ---
+        const menuScreen = document.getElementById('menu-screen');
+        const startLevel1Button = document.getElementById('start-level-1');
+        const startLevel2Button = document.getElementById('start-level-2');
+        const startLevel3Button = document.getElementById('start-level-3');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const menuBgCanvas = document.getElementById('menu-bg-canvas');
+        const menuBgCtx = menuBgCanvas.getContext('2d');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const winScreen = document.getElementById('win-screen');
+        const restartButtonLose = document.getElementById('restart-button-lose');
+        const playAgainButtonWin = document.getElementById('play-again-button-win');
+        const nextLevelButton = document.getElementById('next-level-button');
+        const winMessageTitle = document.getElementById('win-message-title');
+        const finalScoreDisplay = document.getElementById('final-score-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const healthBar = document.getElementById('health-bar');
+        // Removed flightTimerDisplay constant
+        const jumpSound = document.getElementById('jump-sound');
+        const stompSound = document.getElementById('stomp-sound');
+        const powerupSound = document.getElementById('powerup-sound');
+        const wingFlapSound = document.getElementById('wing-flap-sound');
+        const bgMusicLevel1 = document.getElementById('bg-music-level1');
+        const bgMusicLevel2 = document.getElementById('bg-music-level2'); // Original L2 music element
+        const bgMusicLevel3 = document.getElementById('bg-music-level3'); // Original L3 music element
+        const hurtSound = document.getElementById('hurt-sound');
+        const walkSound = document.getElementById('walk-sound');
+        const coinSound = document.getElementById('coin-sound');
+        const muteButton = document.getElementById('mute-button');
+        const pauseScreen = document.getElementById('pause-screen');
+        const continueButton = document.getElementById('continue-button');
+        const mainMenuButton = document.getElementById('main-menu-button');
+        const gameOverSound = document.getElementById('game-over-sound');
+        const winSound = document.getElementById('win-sound');
+        const menuMusic = document.getElementById('menu-music');
+        const gameOverMusic = document.getElementById('game-over-music');
+        const mainMenuButtonLose = document.getElementById('main-menu-button-lose');
+        const mainMenuButtonWin = document.getElementById('main-menu-button-win');
+        const winMusic = document.getElementById('win-music');
+        const mobileControls = document.getElementById('mobile-controls');
+        const mobileLeft = document.getElementById('mobile-left');
+        const mobileRight = document.getElementById('mobile-right');
+        const mobileJump = document.getElementById('mobile-jump');
+
+
+        // Set volume for specific sounds
+        walkSound.volume = 0.6;
+        jumpSound.volume = 0.42;
+        stompSound.volume = 0.5;
+        powerupSound.volume = 0.6;
+        wingFlapSound.volume = 0.3;
+        hurtSound.volume = 0.65;
+        bgMusicLevel1.volume = 0.65;
+        bgMusicLevel2.volume = 0.46; // Original L2 music volume
+        bgMusicLevel3.volume = 0.4; // Original L3 music volume
+        winSound.volume = 0.36;
+        menuMusic.volume = 0.39;
+        gameOverMusic.volume = 0.39;
+        winMusic.volume = 0.39;
+
+        // --- Game State & Configuration ---
+        let gameActive = false;
+        let score = 0;
+        let isMuted = false;
+        let isPaused = false;
+        let hasUserInteracted = false;
+        let currentLevel = 1;
+        let activeMainMenuIndex = 0;
+        let activePauseMenuIndex = 0;
+        let activeGameOverMenuIndex = 0;
+        let activeWinMenuIndex = 0;
+        let currentFriction = 0.6; // Default friction
+        let projectiles = [];
+        let snowParticles = [];
+        let fireballs = []; // Array for fireballs
+        let fireballSpawners = []; // Array for fireball spawn points and timers
+        let globalGameTime = 0; // Simple timer for spawning
+        let hazards = []; // Initialize hazards array (used by Level 1, cleared elsewhere)
+
+
+        // --- Image Loading ---
+        let images = {};
+        let imagesToLoad = {
+            level1FarBg: 'https://i.imgur.com/aydBWRT.png',
+            level1Bg: 'https://i.imgur.com/E6GcVsh.png',
+            level1Foreground: 'https://i.imgur.com/Kv3rByx.png',
+            level2FarBg: 'https://i.imgur.com/MfltfOp.png', // Corrected URL
+            level2Bg: 'https://i.imgur.com/fIu09M4.png', // New L3 Background
+            level2Foreground: 'https://i.imgur.com/rCDPORr.png', // New L3 foreground
+            level3FarBg: 'https://i.imgur.com/GBxv87Q.png', // Original L3
+            level3Bg: 'https://i.imgur.com/MwuBuQt.png', // Original L3
+            level3Foreground: 'https://i.imgur.com/acz0WNk.png', // Original L3
+            playerIdle: 'https://i.imgur.com/qYutsLP.png',
+            playerRun1: 'https://i.imgur.com/NXzvbTE.png',
+            playerRun2: 'https://i.imgur.com/88pywvu.png',
+            playerJump: 'https://i.imgur.com/UjDkFJg.png',
+            playerFly: 'https://i.imgur.com/0G5mrA3.png',
+            platform: 'https://i.imgur.com/ZCx5iG4.png',
+            platform2: 'https://i.imgur.com/0irWQAl.png', // Original L2 platform
+            platform3: 'https://i.imgur.com/uiraUL4.png', // Original L3 platform
+            goalPlatform: 'https://i.imgur.com/MSK5cxN.png',
+            coin: 'https://i.imgur.com/TOrFhtb.png',
+            turret: 'https://i.imgur.com/XalpDpI.png',
+            tree: 'https://i.imgur.com/XzE0NgJ.png',
+            tree2: 'https://i.imgur.com/Vx2KJDU.png',
+            feather: 'https://i.imgur.com/gNvPtIM.png',
+            decor1: 'https://i.imgur.com/sl7tC2t.png',
+            decor_tree_tall: 'https://i.imgur.com/CDraSFz.png',
+            decor_tree_wide: 'https://i.imgur.com/nZVhASO.png',
+            decor_tree_mossy: 'https://i.imgur.com/mexaOEx.png',
+            decor5: 'https://i.imgur.com/JSPZv2z.png',
+            decor6: 'https://i.imgur.com/xlKRC0e.png',
+            decor7: 'https://i.imgur.com/neehy7l.png',
+            decor8: 'https://i.imgur.com/0PwF3pE.png',
+            decor_l2_start: 'https://i.imgur.com/EdN5FRg.png',
+            decor_l2_bush: 'https://i.imgur.com/CSgwfhH.png',
+            decor_l2_statue: 'https://i.imgur.com/LXlcIf4.png',
+            decor_l2_statue2: 'https://i.imgur.com/4Y298bf.png',
+            decor_l2_vines: 'https://i.imgur.com/ZSHmvom.png',
+            decor_l2_crystal: 'https://i.imgur.com/WGWxltP.png',
+            decor_l2_statue4: 'https://i.imgur.com/bdaGG2v.png',
+            decor_l2_bush2: 'https://i.imgur.com/arZxLwE.png',
+            decor_l2_statue3: 'https://i.imgur.com/Z48QRqh.png',
+            enemy1: 'https://i.imgur.com/zPZAEGs.png', // Butterfly 1
+            enemy2: 'https://i.imgur.com/VRoIhrn.png', // Butterfly 2
+            level2Enemy1: 'https://i.imgur.com/28TxFn5.png', // Original L2 Bird
+            level2Enemy2: 'https://i.imgur.com/D5wS40l.png', // Original L2 Bird
+            snowman1: 'https://i.imgur.com/MTK6D32.png', // Original L3 Snowman
+            snowman2: 'https://i.imgur.com/o2WIuAP.png', // Original L3 Snowman
+            rat1: 'https://i.imgur.com/zmM9IPc.png', // Original L2 Rat
+            rat2: 'https://i.imgur.com/3COZMhG.png', // Original L2 Rat
+            menuBg1: 'https://i.imgur.com/4m8i9Ba.png',
+            menuBg2: 'https://i.imgur.com/e3d9eTz.png',
+            menuBg3: 'https://i.imgur.com/a9GtC4N.png',
+            menuBg4: 'https://i.imgur.com/UjbcZef.png',
+            menuBg5: 'https://i.imgur.com/UDu0NYJ.png',
+            menuBg6: 'https://i.imgur.com/HdHPx0p.png',
+            sign: 'https://i.imgur.com/kq3PoOF.png',
+            fireball1: 'https://i.imgur.com/w9EHrId.png', // Corrected Fireball frame 1
+            fireball2: 'https://i.imgur.com/hhbg2rz.png'  // Corrected Fireball frame 2
+            // Removed thornBush image loading
+        };
+        let imageCount = Object.keys(imagesToLoad).length;
+        let loadedImages = 0;
+
+        function loadImages() {
+            console.log("Starting image loading..."); // Log: Start loading
+            let errorOccurred = false; // Flag to track loading errors
+
+            for (const key in imagesToLoad) {
+                images[key] = new Image();
+                images[key].src = imagesToLoad[key]; // Assume URLs are direct links now
+
+                // Add onerror handlers to img tags in HTML for better user feedback
+                images[key].onerror = function() {
+                    console.error(`Error loading image: ${key} at ${this.src}`); // Log: Image error
+                    errorOccurred = true; // Set flag on error
+                };
+
+
+                images[key].onload = () => {
+                    loadedImages++;
+                    // console.log(`Loaded image: ${key} (${loadedImages}/${imageCount})`); // Reduce console noise
+                    if (!errorOccurred && loadedImages === imageCount) {
+                        console.log("All images loaded successfully."); // Log: All loaded
+                        startMenuAnimation();
+                    }
+                };
+            }
+        }
+
+        // Creates a screen-space snow effect
+        function createSnow() {
+            if (!canvas.width) return;
+            snowParticles = [];
+            const numberOfParticles = 150;
+            for (let i = 0; i < numberOfParticles; i++) {
+                snowParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 1,
+                    speedY: Math.random() * 1 + 0.5
+                });
+            }
+        }
+
+        // Player properties
+        const player = {
+            x: 100, y: 400, width: 120, height: 120, speed: 3,
+            velocityX: 0, velocityY: 0, isJumping: false, jumpPower: 20,
+            jumps: 0, maxJumps: 2, health: 4, maxHealth: 4, invincible: false,
+            invincibleTimer: 0, isDying: false, deathTimer: 0,
+            isFlying: false, flightTimer: 0,
+            gameFrame: 0, staggerFrames: 10, direction: 'right'
+        };
+
+        // World properties
+        const gravity = 1;
+
+        // Camera for scrolling
+        const camera = { x: 0, y: 0 };
+
+        // --- Level Data ---
+        let platforms = [], coins = [], turrets = [], decorations = [], enemies = [], signs = [], powerUps = [];
+        let levelWidth = 8000;
+
+        function setupLevel() {
+            // Player reset
+            player.x = 100; player.y = 400; player.velocityX = 0; player.velocityY = 0;
+            player.isJumping = true; player.health = player.maxHealth; player.invincible = false;
+            player.invincibleTimer = 0; player.isDying = false; player.deathTimer = 0;
+            player.isFlying = false; player.flightTimer = 0;
+            updateHealthBar(); camera.x = 0;
+            globalGameTime = 0; // Reset global timer
+
+            if (currentLevel === 1) {
+                setupLevel1();
+            } else if (currentLevel === 2) { // Now loads original level 3 data
+                setupOriginalLevel3();
+            } else if (currentLevel === 3) { // Now loads original level 2 data
+                setupOriginalLevel2();
+            }
+        }
+
+        function setupLevel1() {
+            levelWidth = 8000;
+            currentFriction = 0.6; // Normal friction
+            platforms = [
+                { x: 0, y: 550, width: 800, height: 50 },
+                { x: 600, y: 450, width: 250, height: 50, initialY: 450 },
+                { x: 900, y: 350, width: 150, height: 50, initialY: 350 },
+                { x: 1200, y: 450, width: 360, height: 50, initialY: 450 },
+                { x: 1550, y: 300, width: 100, height: 50, initialY: 300 },
+                { x: 1750, y: 250, width: 100, height: 50, initialY: 250 },
+                { x: 2100, y: 500, width: 300, height: 50, initialY: 500 },
+                { x: 2500, y: 400, width: 90, height: 50, initialY: 400 },
+                { x: 2650, y: 300, width: 50, height: 50, initialY: 300 },
+                { x: 2900, y: 550, width: 1100, height: 50 },
+                { x: 4200, y: 450, width: 100, height: 50, initialY: 450 },
+                { x: 4400, y: 350, width: 100, height: 50, initialY: 350 },
+                { x: 5000, y: 550, width: 1000, height: 50 },
+                { x: 5500, y: 400, width: 250, height: 50, initialY: 400 },
+                { x: 6000, y: 300, width: 90, height: 50, initialY: 300 },
+                { x: 6300, y: 300, width: 50, height: 50, initialY: 300 },
+                { x: 6600, y: 300, width: 90, height: 50, initialY: 300 },
+                { x: 7000, y: 550, width: 1000, height: 50 },
+                { x: 7800, y: 450, width: 100, height: 50, isGoal: true } // Goal for Level 1
+            ];
+              coins = [ // Level 1 coins
+                { x: 400, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 450, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 500, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 700, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 750, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 950, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                { x: 1000, y: 250, width: 40, height: 40, active: true, initialY: 250 }, // New
+                { x: 1250, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 1300, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 1350, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 1585, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 1785, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 2200, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                { x: 2250, y: 400, width: 40, height: 40, active: true, initialY: 400 }, // New
+                { x: 2505, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 2655, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 3200, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 3250, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 3300, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 3350, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                { x: 3400, y: 380, width: 40, height: 40, active: true, initialY: 380 },
+                { x: 3450, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                { x: 3500, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 3550, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 4220, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 4420, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                { x: 5100, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 5150, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 5200, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 5250, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 5550, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 5600, y: 300, width: 40, height: 40, active: true, initialY: 300 }, // New
+                { x: 6005, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 6305, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 6605, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 7100, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 7150, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 7200, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 7250, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 7300, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 7350, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+            ];
+            turrets = [];
+            enemies = [ // Level 1 enemies
+                 { type: 'butterfly', x: 1000, y: 400, width: 60, height: 60, initialX: 1000, initialY: 400, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                 { type: 'butterfly', x: 2200, y: 300, width: 60, height: 60, initialX: 2200, initialY: 300, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                 { type: 'butterfly', x: 3500, y: 450, width: 60, height: 60, initialX: 3500, initialY: 450, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                 { type: 'butterfly', x: 5600, y: 300, width: 60, height: 60, initialX: 5600, initialY: 300, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                 { type: 'butterfly', x: 7400, y: 450, width: 60, height: 60, initialX: 7400, initialY: 450, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+            ];
+            decorations = [ // Level 1 decorations
+                { img: images.decor1, x: 20, width: 250, height: 168, platformIndex: 0 },
+                { img: images.decor_tree_tall, x: 665, width: 120, height: 200, platformIndex: 1 },
+                { img: images.decor_tree_mossy, x: 925, width: 95, height: 155, platformIndex: 2 },
+                { img: images.decor_tree_wide, x: 1225, width: 239, height: 203, platformIndex: 3 },
+                { img: images.decor_tree_mossy, x: 2190, width: 95, height: 155, platformIndex: 6 },
+                { img: images.decor_tree_wide, x: 3100, width: 239, height: 203, platformIndex: 9 },
+                { img: images.decor_tree_mossy, x: 4200, width: 95, height: 155, platformIndex: 10 },
+                { img: images.decor_tree_wide, x: 5200, width: 239, height: 203, platformIndex: 12 },
+                { img: images.decor_tree_tall, x: 5565, width: 120, height: 200, platformIndex: 13 },
+                { img: images.decor_tree_tall, x: 7200, width: 120, height: 200, platformIndex: 17 },
+                { img: images.decor5, x: 500, width: 102, height: 80, platformIndex: 0 },
+                { img: images.decor5, x: 3500, width: 102, height: 80, platformIndex: 9 },
+                { img: images.decor5, x: 5050, width: 102, height: 80, platformIndex: 12 },
+                { img: images.decor5, x: 7500, width: 102, height: 80, platformIndex: 17 },
+                { img: images.decor7, x: 2505, width: 80, height: 88, platformIndex: 7 },
+                { img: images.decor7, x: 6005, width: 80, height: 88, platformIndex: 14 },
+                { img: images.decor7, x: 6605, width: 80, height: 88, platformIndex: 16 },
+                { img: images.decor6, x: 3000, width: 252, height: 66, platformIndex: 9 },
+                { img: images.decor6, x: 7050, width: 252, height: 66, platformIndex: 17 },
+                { img: images.decor8, x: 1400, width: 120, height: 80, platformIndex: 3 },
+                { img: images.decor8, x: 3800, width: 120, height: 80, platformIndex: 9 },
+                { img: images.decor8, x: 5800, width: 120, height: 80, platformIndex: 12 },
+                { img: images.decor8, x: 7600, width: 120, height: 80, platformIndex: 17 },
+            ];
+            powerUps = []; // Level 1 has no powerups
+            projectiles = [];
+            signs = [];
+            hazards = []; // Ensure hazards are cleared
+            fireballs = []; // Ensure fireballs are cleared for L1
+            fireballSpawners = []; // Clear spawners
+        }
+
+        // Renamed function, contains ORIGINAL Level 2 data (NOW LEVEL 3)
+        function setupOriginalLevel2() {
+            console.log("Setting up Original Level 2 (now Level 3)...");
+            levelWidth = 10000;
+            currentFriction = 0.6; // Normal friction
+            console.log("OL2: Setting platforms...");
+            platforms = [
+                { x: 0, y: 550, width: 400, height: 50 }, // 0
+                { x: 500, y: 450, width: 100, height: 50, initialY: 450 }, // 1
+                { x: 700, y: 350, width: 100, height: 50, initialY: 350 }, // 2
+                { x: 900, y: 250, width: 100, height: 50, initialY: 250 }, // 3
+                { x: 1200, y: 550, width: 800, height: 50 }, // 4
+                { x: 2200, y: 450, width: 50, height: 50, initialY: 450 }, // 5
+                { x: 2400, y: 350, width: 50, height: 50, initialY: 350 }, // 6
+                { x: 2600, y: 250, width: 50, height: 50, initialY: 250 }, // 7
+                { x: 3000, y: 550, width: 1500, height: 50 }, // 8
+                { x: 4800, y: 400, width: 200, height: 50, initialY: 400 }, // 9
+                { x: 5200, y: 300, width: 200, height: 50, initialY: 300 }, // 10
+                { x: 5800, y: 550, width: 1000, height: 50 }, // 11
+                { x: 7000, y: 400, width: 100, height: 50, initialY: 400 }, // 12
+                { x: 7300, y: 300, width: 100, height: 50, initialY: 300 }, // 13
+                { x: 7600, y: 200, width: 100, height: 50, initialY: 200 }, // 14
+                { x: 8000, y: 550, width: 2000, height: 50 }, // 15
+                { x: 9800, y: 450, width: 100, height: 50, isGoal: true } // 16 - Goal for Original Level 2 (now Level 3)
+            ];
+             console.log("OL2: Setting coins...");
+             coins = [ // Original Level 2 coins
+                 { x: 550, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                 { x: 750, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                 { x: 950, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                 { x: 1500, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 1550, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 1600, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 2205, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                 { x: 2405, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                 { x: 2605, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                 { x: 3500, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 3550, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 4850, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                 { x: 5250, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                 { x: 6200, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 6250, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 7020, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                 { x: 7320, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                 { x: 7620, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                 { x: 8500, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 8550, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 { x: 8600, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                 // Add ~40% more coins for original L2
+                 { x: 600, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                 { x: 800, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                 { x: 1000, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                 { x: 1700, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                 { x: 3100, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                 { x: 3150, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                 { x: 4950, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                 { x: 6000, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                 { x: 8100, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+                 { x: 9200, y: 400, width: 40, height: 40, active: true, initialY: 400 },
+             ];
+             console.log("OL2: Setting turrets...");
+             turrets = [];
+             console.log("OL2: Setting enemies...");
+             enemies = [ // Original Level 2 enemies
+                  { type: 'butterfly', x: 1300, y: 400, width: 60, height: 60, initialX: 1300, initialY: 400, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'bird', x: 1800, y: 400, width: 180, height: 180, initialX: 1800, initialY: 400, hoverY: 200, gameFrame: 0, staggerFrames: 10, speed: 0.003, state: 'hovering', detectionRange: 350, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'butterfly', x: 3200, y: 400, width: 60, height: 60, initialX: 3200, initialY: 400, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'bird', x: 3800, y: 400, width: 180, height: 180, initialX: 3800, initialY: 400, hoverY: 200, gameFrame: 0, staggerFrames: 10, speed: 0.003, state: 'hovering', detectionRange: 350, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'butterfly', x: 4200, y: 400, width: 60, height: 60, initialX: 4200, initialY: 400, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'bird', x: 6000, y: 400, width: 180, height: 180, initialX: 6000, initialY: 400, hoverY: 200, gameFrame: 0, staggerFrames: 10, speed: 0.003, state: 'hovering', detectionRange: 350, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'butterfly', x: 6500, y: 400, width: 60, height: 60, initialX: 6500, initialY: 400, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'bird', x: 8200, y: 400, width: 180, height: 180, initialX: 8200, initialY: 400, hoverY: 200, gameFrame: 0, staggerFrames: 10, speed: 0.003, state: 'hovering', detectionRange: 350, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'butterfly', x: 9000, y: 400, width: 60, height: 60, initialX: 9000, initialY: 400, gameFrame: 0, staggerFrames: 10, speed: 0.002, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'rat', platformIndex: 8, speed: 2, width: 100, height: 60, direction: 1, gameFrame: 0, staggerFrames: 10, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'rat', platformIndex: 4, speed: 2, width: 100, height: 60, direction: -1, gameFrame: 0, staggerFrames: 10, isDying: false, deathTimer: 0, velocityY: 0 },
+                  { type: 'rat', platformIndex: 15, speed: 2, width: 100, height: 60, direction: 1, gameFrame: 0, staggerFrames: 10, isDying: false, deathTimer: 0, velocityY: 0 },
+             ];
+             console.log("OL2: Setting signs...");
+             signs = [];
+             console.log("OL2: Setting decorations...");
+             decorations = [ // Original Level 2 decorations
+                  { img: images.decor_l2_start, x: 20, width: 190, height: 275, platformIndex: 0 },
+                  { img: images.decor_l2_bush2, x: 250, width: 150, height: 100, platformIndex: 0 },
+                  { img: images.decor_l2_crystal, x: 523, width: 54, height: 108, platformIndex: 1 },
+                  { img: images.decor_l2_bush2, x: 700, width: 100, height: 67, platformIndex: 2 },
+                  { img: images.decor_l2_crystal, x: 923, width: 54, height: 108, platformIndex: 3 },
+                  { img: images.decor_l2_vines, x: 1750, width: 224, height: 150, platformIndex: 4 },
+                  { img: images.decor_l2_statue, x: 1800, width: 79, height: 158, platformIndex: 4 },
+                  { img: images.decor_l2_statue4, x: 1600, width: 126, height: 203, platformIndex: 4 },
+                  { img: images.decor_l2_bush2, x: 1400, width: 150, height: 100, platformIndex: 4 },
+                  { img: images.decor_l2_bush, x: 1300, width: 130, height: 100, platformIndex: 4 },
+                  { img: images.decor_l2_crystal, x: 2202, width: 54, height: 108, platformIndex: 5 },
+                  { img: images.decor_l2_bush2, x: 2400, width: 49, height: 33, platformIndex: 6 },
+                  { img: images.decor_l2_crystal, x: 2602, width: 54, height: 108, platformIndex: 7 },
+                  { img: images.decor_l2_bush2, x: 3100, width: 150, height: 100, platformIndex: 8 },
+                  { img: images.decor_l2_bush, x: 3200, width: 130, height: 100, platformIndex: 8 },
+                  { img: images.decor_l2_statue2, x: 3500, width: 90, height: 190, platformIndex: 8 },
+                  { img: images.decor_l2_statue, x: 4000, width: 79, height: 158, platformIndex: 8 },
+                  { img: images.decor_l2_vines, x: 4200, width: 224, height: 150, platformIndex: 8 },
+                  { img: images.decor_l2_statue4, x: 4300, width: 126, height: 203, platformIndex: 8 },
+                  { img: images.decor_l2_crystal, x: 4873, width: 54, height: 108, platformIndex: 9 },
+                  { img: images.decor_l2_crystal, x: 5273, width: 54, height: 108, platformIndex: 10 },
+                  { img: images.decor_l2_bush, x: 6000, width: 130, height: 100, platformIndex: 11 },
+                  { img: images.decor_l2_crystal, x: 6220, width: 54, height: 108, platformIndex: 11 },
+                  { img: images.decor_l2_statue2, x: 6500, width: 90, height: 190, platformIndex: 11 },
+                  { img: images.decor_l2_statue4, x: 6650, width: 126, height: 203, platformIndex: 11 },
+                  { img: images.decor_l2_crystal, x: 7023, width: 54, height: 108, platformIndex: 12 },
+                  { img: images.decor_l2_crystal, x: 7323, width: 54, height: 108, platformIndex: 13 },
+                  { img: images.decor_l2_crystal, x: 7623, width: 54, height: 108, platformIndex: 14 },
+                  { img: images.decor_l2_bush, x: 8500, width: 130, height: 100, platformIndex: 15 },
+                  { img: images.decor_l2_statue2, x: 8800, width: 90, height: 190, platformIndex: 15 },
+                  { img: images.decor_l2_statue, x: 9200, width: 79, height: 158, platformIndex: 15 },
+                  { img: images.decor_l2_vines, x: 9400, width: 224, height: 150, platformIndex: 15 },
+             ];
+             console.log("OL2: Setting powerups...");
+             powerUps = [ // Original Level 2 powerup
+                  { type: 'feather', x: levelWidth * 0.4, y: 130, width: 50, height: 70, active: true, initialY: 130 }
+             ];
+             console.log("OL2: Clearing projectiles...");
+             projectiles = [];
+             hazards = []; // Ensure hazards are cleared
+             fireballs = []; // Ensure fireballs are cleared
+
+             // Define Fireball Spawners for Level 3 (Original L2)
+             console.log("OL2: Setting fireball spawners...");
+             fireballSpawners = [
+                 // Original 5, more spread out, slightly longer intervals
+                 { x: 1000, interval: 100, timer: 0, delay: 0 },   // Was 45
+                 { x: 3000, interval: 90, timer: 0, delay: 60 },  // Was 40
+                 { x: 5000, interval: 110, timer: 0, delay: 120 }, // Was 50
+                 { x: 7000, interval: 95, timer: 0, delay: 180 }, // Was 42
+                 { x: 9000, interval: 105, timer: 0, delay: 30 },   // Was 47
+                 // Added 10 new spawners
+                 { x: 500, interval: 130, timer: 0, delay: 90 },
+                 { x: 1500, interval: 115, timer: 0, delay: 10 },
+                 { x: 2500, interval: 100, timer: 0, delay: 200 },
+                 { x: 4000, interval: 125, timer: 0, delay: 50 },
+                 { x: 4500, interval: 90, timer: 0, delay: 150 },
+                 { x: 5500, interval: 105, timer: 0, delay: 20 },
+                 { x: 6500, interval: 120, timer: 0, delay: 250 },
+                 { x: 7500, interval: 85, timer: 0, delay: 100 },
+                 { x: 8500, interval: 110, timer: 0, delay: 75 },
+                 { x: 9500, interval: 100, timer: 0, delay: 130 }
+             ];
+
+
+             console.log("OL2: Initializing enemy positions...");
+              // Initialize enemy positions for original L2
+               enemies.forEach(e => {
+                   if (e.type === 'rat') {
+                       const platform = platforms[e.platformIndex];
+                       if (platform) {
+                           if (e.direction === 1) { e.x = platform.x; }
+                           else { e.x = platform.x + platform.width - e.width; }
+                           e.y = platform.y - e.height;
+                       }
+                   }
+               });
+               console.log("Original Level 2 (now Level 3) setup complete.");
+        }
+
+        // Renamed function, contains ORIGINAL Level 3 data (NOW LEVEL 2)
+        function setupOriginalLevel3() {
+            console.log("Setting up Original Level 3 (now Level 2)...");
+            levelWidth = 13000;
+            currentFriction = 0.9; // Slippery friction for sliding
+            console.log("OL3: Setting platforms...");
+            platforms = [
+                // Original Level 3 platforms
+                { x: 0, y: 550, width: 800, height: 50 }, // 0
+                { x: 900, y: 450, width: 200, height: 50, initialY: 450 }, // 1
+                { x: 1200, y: 350, width: 200, height: 50, initialY: 350 }, // 2
+                { x: 1500, y: 250, width: 200, height: 50, initialY: 250 }, // 3
+                { x: 2000, y: 550, width: 1200, height: 50 }, // 4
+                { x: 3400, y: 400, width: 100, height: 50, initialY: 400 }, // 5
+                { x: 3600, y: 300, width: 100, height: 50, initialY: 300 }, // 6
+                { x: 3800, y: 200, width: 100, height: 50, initialY: 200 }, // 7
+                { x: 4200, y: 550, width: 2000, height: 50 }, // 8
+                { x: 6400, y: 450, width: 300, height: 50, initialY: 450 }, // 9
+                { x: 6800, y: 350, width: 300, height: 50, initialY: 350 }, // 10
+                { x: 7200, y: 250, width: 300, height: 50, initialY: 250 }, // 11
+                { x: 7800, y: 550, width: 1500, height: 50 }, // 12
+                { x: 9500, y: 400, width: 100, height: 50, initialY: 400 }, // 13
+                { x: 9800, y: 300, width: 100, height: 50, initialY: 300 }, // 14
+                { x: 10100, y: 200, width: 100, height: 50, initialY: 200 }, // 15
+                { x: 10500, y: 550, width: 2500, height: 50 }, // 16
+                { x: 12200, y: 450, width: 100, height: 50, initialY: 450 }, // 17
+                { x: 12400, y: 300, width: 100, height: 50, initialY: 300 }, // 18
+                { x: 12600, y: 200, width: 100, height: 50, initialY: 200 }, // 19
+                { x: 12800, y: 450, width: 100, height: 50, isGoal: true } // 20 - Goal for Original Level 3 (now Level 2)
+            ];
+            console.log("OL3: Setting coins...");
+            coins = [ // Original Level 3 coins
+                 // Level 3 Coins...
+                { x: 650, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 700, y: 350, width: 40, height: 40, active: true, initialY: 350 }, // New
+                { x: 1000, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 1050, y: 150, width: 40, height: 40, active: true, initialY: 150 }, // New
+                { x: 1300, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                { x: 1350, y: 250, width: 40, height: 40, active: true, initialY: 250 }, // New
+                { x: 1600, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 1650, y: 150, width: 40, height: 40, active: true, initialY: 150 }, // New
+                { x: 2200, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 2250, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 2300, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 2350, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 3420, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 3470, y: 300, width: 40, height: 40, active: true, initialY: 300 }, // New
+                { x: 3620, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 3670, y: 200, width: 40, height: 40, active: true, initialY: 200 }, // New
+                { x: 3820, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 3870, y: 100, width: 40, height: 40, active: true, initialY: 100 }, // New
+                { x: 4500, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 4550, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 4600, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 4800, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 4850, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 4900, y: 200, width: 40, height: 40, active: true, initialY: 200 }, // New
+                { x: 6500, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 6550, y: 350, width: 40, height: 40, active: true, initialY: 350 }, // New
+                { x: 6900, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                { x: 6950, y: 250, width: 40, height: 40, active: true, initialY: 250 }, // New
+                { x: 7300, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 7350, y: 150, width: 40, height: 40, active: true, initialY: 150 }, // New
+                { x: 8000, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 8050, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 8100, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 8150, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 9520, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 9570, y: 300, width: 40, height: 40, active: true, initialY: 300 }, // New
+                { x: 9820, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 9870, y: 200, width: 40, height: 40, active: true, initialY: 200 }, // New
+                { x: 10120, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 11000, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 11050, y: 450, width: 40, height: 40, active: true, initialY: 450 },
+                { x: 11100, y: 450, width: 40, height: 40, active: true, initialY: 450 }, // New
+                { x: 11500, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 11550, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 11600, y: 300, width: 40, height: 40, active: true, initialY: 300 },
+                { x: 11650, y: 300, width: 40, height: 40, active: true, initialY: 300 }, // New
+                { x: 750, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 800, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 1800, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 1850, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 2500, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 2550, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 2600, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 4000, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 4050, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 5000, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 5050, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 5100, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 5150, y: 350, width: 40, height: 40, active: true, initialY: 350 }, // New
+                { x: 6000, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 6050, y: 150, width: 40, height: 40, active: true, initialY: 150 },
+                { x: 7600, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 7650, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 8500, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                { x: 8550, y: 250, width: 40, height: 40, active: true, initialY: 250 },
+                { x: 8600, y: 250, width: 40, height: 40, active: true, initialY: 250 }, // New
+                { x: 9000, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 9050, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 9100, y: 350, width: 40, height: 40, active: true, initialY: 350 },
+                { x: 9150, y: 350, width: 40, height: 40, active: true, initialY: 350 }, // New
+                { x: 10400, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 10450, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 11800, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 11850, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 11900, y: 200, width: 40, height: 40, active: true, initialY: 200 },
+                { x: 11950, y: 200, width: 40, height: 40, active: true, initialY: 200 }, // New
+                { x: 12500, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+                { x: 12550, y: 100, width: 40, height: 40, active: true, initialY: 100 },
+            ];
+            console.log("OL3: Setting turrets...");
+            turrets = [];
+            console.log("OL3: Setting enemies...");
+            enemies = [ // Original Level 3 enemies
+                { type: 'snowman', platformIndex: 4, speed: 1, width: 88, height: 110, direction: 1, gameFrame: 0, staggerFrames: 30, isDying: false, deathTimer: 0, velocityY: 0, fireCooldown: 0, detectionRange: 700 },
+                { type: 'snowman', platformIndex: 8, speed: 1.2, width: 88, height: 110, direction: -1, gameFrame: 0, staggerFrames: 30, isDying: false, deathTimer: 0, velocityY: 0, fireCooldown: 0, detectionRange: 700, xOffset: 500 },
+                { type: 'snowman', platformIndex: 16, speed: 1, width: 88, height: 110, direction: 1, gameFrame: 0, staggerFrames: 30, isDying: false, deathTimer: 0, velocityY: 0, fireCooldown: 0, detectionRange: 700, xOffset: 1000 },
+            ];
+            console.log("OL3: Setting decorations...");
+            decorations = []; // Original Level 3 had no decorations
+             console.log("OL3: Setting signs...");
+             signs = [];
+             hazards = []; // Ensure hazards are cleared
+            console.log("OL3: Setting powerups...");
+            powerUps = [ // Original Level 3 powerup
+                { type: 'feather', x: levelWidth * 0.6, y: 100, width: 50, height: 70, active: true, initialY: 100 }
+            ];
+            console.log("OL3: Clearing projectiles...");
+            projectiles = []; // Clear projectiles
+            fireballs = []; // Ensure fireballs are cleared for L2
+            fireballSpawners = []; // Clear spawners
+             console.log("OL3: Creating snow...");
+            createSnow(); // Add snow effect
+
+            console.log("OL3: Initializing enemy positions...");
+             // Initialize enemy positions for original L3
+             enemies.forEach(e => {
+                 if (e.type === 'rat' || e.type === 'snowman') {
+                    const platform = platforms[e.platformIndex];
+                    if (platform) {
+                        if (e.direction === 1) { e.x = platform.x + (e.xOffset || 0); }
+                        else { e.x = platform.x + platform.width - e.width - (e.xOffset || 0); }
+                        e.y = platform.y - e.height;
+                    }
+                 }
+             });
+              console.log("Original Level 3 (now Level 2) setup complete.");
+        }
+
+
+        // --- Event Listeners & Audio Unlock ---
+        const keys = { right: false, left: false, up: false, down: false, upPressed: false };
+
+        // This function will be called on the first user interaction to unlock audio
+        function initialUserInteraction() {
+            if (hasUserInteracted) return;
+            hasUserInteracted = true;
+
+            // Try to play menu music since this is the first interaction
+            if (!isMuted && menuScreen.style.display !== 'none') {
+                menuMusic.play().catch(e => {
+                    console.warn("Menu music couldn't play on first interaction:", e);
+                });
+            }
+
+            // Clean up these one-time listeners
+            document.removeEventListener('keydown', initialUserInteraction);
+            document.removeEventListener('mousedown', initialUserInteraction);
+            document.removeEventListener('mouseover', initialUserInteraction);
+        }
+
+        document.addEventListener('keydown', initialUserInteraction);
+        document.addEventListener('mousedown', initialUserInteraction);
+        document.addEventListener('mouseover', initialUserInteraction);
+
+        startLevel1Button.addEventListener('click', () => {
+            console.log("Start Level 1 button clicked."); // Log: Button click
+            currentLevel = 1;
+            score = 0; // Reset score for a new game
+            startGame();
+        });
+        startLevel2Button.addEventListener('click', () => { // SWAPPED
+            console.log("Start Level 2 button clicked (loading Original Level 3)."); // Log: Button click
+            currentLevel = 2; // Set game state to Level 2
+            score = 0; // Reset score for a new game
+            startGame();
+        });
+        startLevel3Button.addEventListener('click', () => { // SWAPPED
+            console.log("Start Level 3 button clicked (loading Original Level 2)."); // Log: Button click
+            currentLevel = 3; // Set game state to Level 3
+            score = 0; // Reset score for a new game
+            startGame();
+        });
+
+        restartButtonLose.addEventListener('click', () => {
+            score = 0; // Reset score on try again
+            startGame();
+        });
+        playAgainButtonWin.addEventListener('click', () => {
+            score = 0; // Reset score on play again
+            startGame();
+        });
+        nextLevelButton.addEventListener('click', () => {
+             // Logic adjusted for swapped levels
+            if (currentLevel === 1) { // After beating Level 1...
+                currentLevel = 2; // Go to new Level 2 (Original L3)
+            } else if (currentLevel === 2) { // After beating new Level 2 (Original L3)...
+                currentLevel = 3; // Go to new Level 3 (Original L2)
+            }
+            // No next level after new Level 3 (Original L2)
+            startGame();
+        });
+        muteButton.addEventListener('click', toggleMute);
+        continueButton.addEventListener('click', togglePause);
+        mainMenuButton.addEventListener('click', returnToMainMenu);
+        mainMenuButtonLose.addEventListener('click', returnToMainMenu);
+        mainMenuButtonWin.addEventListener('click', returnToMainMenu);
+
+        document.addEventListener('keydown', (e) => {
+            // Player movement controls (only active when game is running)
+            if (gameActive && !isPaused) {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+                if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
+                    if (!keys.up && !player.isFlying) { keys.upPressed = true; } // Only trigger jump if not flying
+                    keys.up = true;
+                    e.preventDefault();
+                }
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                    keys.down = true;
+                    e.preventDefault();
+                }
+            }
+             // Global controls (pause)
+            if (e.code === 'Escape') {
+                if (gameActive || isPaused) { togglePause(); }
+            }
+
+             // Menu navigation controls (only active when a menu is shown)
+            if (!gameActive) {
+                if (menuScreen.style.display === 'flex') {
+                    handleMenuInput(e, 'main');
+                } else if (pauseScreen.style.display === 'flex') {
+                    handleMenuInput(e, 'pause');
+                } else if (gameOverScreen.style.display === 'flex') {
+                    handleMenuInput(e, 'gameover');
+                } else if (winScreen.style.display === 'flex') {
+                    handleMenuInput(e, 'win');
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+            if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
+                keys.up = false;
+                keys.upPressed = false;
+            }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                keys.down = false;
+            }
+        });
+
+        // Mobile Control Listeners
+        mobileLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
+        mobileLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
+        mobileRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
+        mobileRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; });
+        mobileJump.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!keys.up && !player.isFlying) { keys.upPressed = true; }
+            keys.up = true;
+        });
+        mobileJump.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.up = false;
+            keys.upPressed = false;
+        });
+
+        // --- Game Flow & Menu Navigation ---
+        function handleMenuInput(e, menuType) {
+            let buttons;
+            let activeIndex;
+            let maxIndex;
+
+            if (menuType === 'main') {
+                buttons = menuScreen.querySelectorAll('.start-button');
+                activeIndex = activeMainMenuIndex;
+            } else if (menuType === 'pause') {
+                buttons = pauseScreen.querySelectorAll('.start-button');
+                activeIndex = activePauseMenuIndex;
+            } else if (menuType === 'gameover') {
+                buttons = gameOverScreen.querySelectorAll('.start-button');
+                activeIndex = activeGameOverMenuIndex;
+            } else if (menuType === 'win') {
+                // Get only the visible buttons on the win screen
+                buttons = Array.from(winScreen.querySelectorAll('.start-button')).filter(btn => btn.style.display !== 'none');
+                activeIndex = activeWinMenuIndex;
+            }
+
+            if (!buttons || buttons.length === 0) return;
+            maxIndex = buttons.length - 1;
+
+            if (e.code === 'ArrowRight' && menuType !== 'win') {
+                activeIndex++;
+                if (activeIndex > maxIndex) activeIndex = 0;
+            } else if (e.code === 'ArrowLeft' && menuType !== 'win') {
+                activeIndex--;
+                if (activeIndex < 0) activeIndex = maxIndex;
+            } else if (e.code === 'ArrowDown' && menuType === 'win') {
+                activeIndex++;
+                if (activeIndex > maxIndex) activeIndex = 0;
+            } else if (e.code === 'ArrowUp' && menuType === 'win') {
+                activeIndex--;
+                if (activeIndex < 0) activeIndex = maxIndex;
+            } else if (e.code === 'Enter') {
+                buttons[activeIndex].click();
+                return;
+            }
+
+            if (menuType === 'main') activeMainMenuIndex = activeIndex;
+            else if (menuType === 'pause') activePauseMenuIndex = activeIndex;
+            else if (menuType === 'gameover') activeGameOverMenuIndex = activeIndex;
+            else if (menuType === 'win') activeWinMenuIndex = activeIndex;
+
+            updateMenuSelection(menuType);
+        }
+
+        function updateMenuSelection(menuType) {
+            let buttons;
+            let activeIndex;
+
+            if (menuType === 'main') {
+                buttons = menuScreen.querySelectorAll('.start-button');
+                activeIndex = activeMainMenuIndex;
+            } else if (menuType === 'pause') {
+                buttons = pauseScreen.querySelectorAll('.start-button');
+                activeIndex = activePauseMenuIndex;
+            } else if (menuType === 'gameover') {
+                buttons = gameOverScreen.querySelectorAll('.start-button');
+                activeIndex = activeGameOverMenuIndex;
+            } else if (menuType === 'win') {
+                buttons = Array.from(winScreen.querySelectorAll('.start-button')).filter(btn => btn.style.display !== 'none');
+                activeIndex = activeWinMenuIndex;
+            }
+
+            if (!buttons) return;
+
+            buttons.forEach((button, index) => {
+                if (index === activeIndex) {
+                    button.classList.add('selected');
+                } else {
+                    button.classList.remove('selected');
+                }
+            });
+        }
+
+        function startGame() {
+            console.log("Attempting to start game for level:", currentLevel); // Log: Start game attempt
+            stopMenuAnimation();
+            gameOverMusic.pause();
+            winMusic.pause();
+            menuScreen.style.display = 'none';
+            menuBgCanvas.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            winScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            canvas.focus(); // Set focus to the canvas to ensure it receives key events
+            scoreDisplay.style.display = 'block';
+            healthBar.style.display = 'block';
+            muteButton.style.display = 'block';
+            mobileControls.style.display = 'none'; // Keep mobile controls hidden during gameplay
+            // Removed flightTimerDisplay line
+
+            scoreDisplay.textContent = `Score: ${score}`;
+
+            let currentBgMusic;
+            // SWAPPED MUSIC LOGIC
+            if (currentLevel === 1) currentBgMusic = bgMusicLevel1;
+            else if (currentLevel === 2) currentBgMusic = bgMusicLevel3; // Level 2 now plays Original L3 music
+            else if (currentLevel === 3) currentBgMusic = bgMusicLevel2; // Level 3 now plays Original L2 music
+
+            bgMusicLevel1.pause();
+            bgMusicLevel2.pause();
+            bgMusicLevel3.pause();
+
+            if (!isMuted && currentBgMusic) {
+                currentBgMusic.currentTime = 0;
+                currentBgMusic.play().catch(e => console.warn("BG music couldn't play:", e));
+            }
+
+            resizeCanvas();
+            console.log("Setting up level data..."); // Log: Before setupLevel call
+            setupLevel(); // This now calls the correct (swapped) setup function based on currentLevel
+            console.log("Level setup complete. Starting game loop."); // Log: After setupLevel call
+            gameActive = true;
+            isPaused = false;
+            gameLoop();
+        }
+
+        function showMessage(screen) {
+            gameActive = false;
+            screen.style.display = 'flex';
+            scoreDisplay.style.display = 'none';
+            healthBar.style.display = 'none';
+            muteButton.style.display = 'none';
+            mobileControls.style.display = 'none';
+            // Removed flightTimerDisplay line
+            bgMusicLevel1.pause();
+            bgMusicLevel2.pause();
+            bgMusicLevel3.pause();
+            walkSound.pause();
+            walkSound.currentTime = 0;
+            wingFlapSound.pause();
+
+            // Make sure it's hidden before we decide to show it
+            finalScoreDisplay.style.display = 'none';
+
+            if (screen === winScreen) {
+                winSound.play();
+                // SWAPPED WIN SCREEN LOGIC
+                if (currentLevel < 3) { // If player beats Level 1 or new Level 2 (Original L3)
+                    winMessageTitle.textContent = `Level ${currentLevel} Cleared!`;
+                    finalScoreDisplay.textContent = `Score: ${score}`;
+                    finalScoreDisplay.style.display = 'block';
+                    nextLevelButton.style.display = 'block'; // Show next level button
+                    playAgainButtonWin.style.display = 'none';
+                } else { // Beat the final level (new Level 3 - Original L2)
+                    winMessageTitle.textContent = 'You Win!';
+                    finalScoreDisplay.textContent = `Final Score: ${score}`;
+                    finalScoreDisplay.style.display = 'block';
+                    nextLevelButton.style.display = 'none'; // No next level
+                    playAgainButtonWin.style.display = 'block'; // Show play again
+                }
+                 activeWinMenuIndex = 0;
+                 updateMenuSelection('win');
+            } else if (screen === gameOverScreen) {
+                activeGameOverMenuIndex = 0;
+                updateMenuSelection('gameover');
+            }
+
+            if (screen === gameOverScreen && !isMuted) {
+                gameOverMusic.currentTime = 0;
+                gameOverMusic.play().catch(e => console.warn("Game over music couldn't play:", e));
+            } else if (screen === winScreen && !isMuted) {
+                winMusic.currentTime = 0;
+                winMusic.play().catch(e => console.warn("Win music couldn't play:", e));
+            }
+        }
+
+        function togglePause() {
+            if (player.isDying) return;
+
+            let currentBgMusic;
+            // SWAPPED MUSIC LOGIC
+            if (currentLevel === 1) currentBgMusic = bgMusicLevel1;
+            else if (currentLevel === 2) currentBgMusic = bgMusicLevel3; // Level 2 uses Original L3 music
+            else if (currentLevel === 3) currentBgMusic = bgMusicLevel2; // Level 3 uses Original L2 music
+
+
+            isPaused = !isPaused;
+            if (isPaused) {
+                gameActive = false; // Set game to inactive when paused
+                pauseScreen.style.display = 'flex';
+                mobileControls.style.display = 'none'; // Hide when paused
+                if(currentBgMusic) currentBgMusic.pause();
+                walkSound.pause();
+                wingFlapSound.pause(); // Always pause sound effects when paused
+                activePauseMenuIndex = 0;
+                updateMenuSelection('pause');
+            } else {
+                gameActive = true; // Set game to active when unpaused
+                pauseScreen.style.display = 'none';
+                mobileControls.style.display = 'none'; // Keep hidden when unpaused too
+                if (!isMuted && currentBgMusic) {
+                    currentBgMusic.play().catch(e => console.warn("BG music couldn't resume:", e));
+                }
+                // Resume wing sound if flying, regardless of mute state
+                if (player.isFlying) {
+                    wingFlapSound.playbackRate = 3.38;
+                    wingFlapSound.play().catch(e => console.warn("Wing sound couldn't resume:", e));
+                }
+                gameLoop();
+            }
+        }
+
+        function returnToMainMenu() {
+            gameActive = false;
+            isPaused = false;
+            // Hide all game elements EXCEPT the mute button
+            [canvas, scoreDisplay, healthBar, pauseScreen, gameOverScreen, winScreen, /* flightTimerDisplay removed */ mobileControls].forEach(el => el.style.display = 'none');
+            muteButton.style.display = 'block'; // Make sure the mute button is visible on the menu
+            bgMusicLevel1.pause();
+            bgMusicLevel2.pause();
+            bgMusicLevel3.pause();
+            walkSound.pause();
+            walkSound.currentTime = 0;
+            wingFlapSound.pause();
+            gameOverMusic.pause();
+            winMusic.pause();
+            menuScreen.style.display = 'flex';
+            menuBgCanvas.style.display = 'block';
+            startMenuAnimation();
+            // Explicitly restart menu music
+            if (!isMuted && hasUserInteracted) {
+                menuMusic.currentTime = 0;
+                menuMusic.play().catch(e => console.warn("Menu music couldn't play on return:", e));
+            }
+            activeMainMenuIndex = 0;
+            updateMenuSelection('main');
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            muteButton.textContent = isMuted ? 'Unmute Music' : 'Mute Music';
+            let currentBgMusic;
+            // SWAPPED MUSIC LOGIC
+            if (currentLevel === 1) currentBgMusic = bgMusicLevel1;
+            else if (currentLevel === 2) currentBgMusic = bgMusicLevel3; // Level 2 uses Original L3 music
+            else if (currentLevel === 3) currentBgMusic = bgMusicLevel2; // Level 3 uses Original L2 music
+
+            if (isMuted) {
+                // Only mute background music
+                if(currentBgMusic) currentBgMusic.pause();
+                menuMusic.pause();
+                gameOverMusic.pause();
+                winMusic.pause();
+            } else {
+                if(hasUserInteracted) {
+                    // Only play the relevant background music
+                    if (gameActive && !isPaused) {
+                        if(currentBgMusic) currentBgMusic.play().catch(e => console.warn("BG music couldn't play:", e));
+                    } else if (menuScreen.style.display === 'flex') {
+                        menuMusic.play().catch(e => console.warn("Menu music couldn't play:", e));
+                    }
+                }
+            }
+        }
+
+        function startDeathSequence() {
+            player.isDying = true;
+            player.deathTimer = 120;
+            player.invincible = true;
+            wingFlapSound.pause();
+            gameOverSound.currentTime = 0;
+            gameOverSound.play().catch(e => console.warn("Game over sound couldn't play:", e));
+        }
+
+        // --- Main Game Loop ---
+        function gameLoop() {
+            if (!gameActive) return;
+            globalGameTime++; // Increment global timer
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            if (player.isDying) {
+                player.deathTimer--;
+                player.velocityY += gravity * 0.5;
+                player.y += player.velocityY;
+                if (player.deathTimer <= 0) { showMessage(gameOverScreen); }
+                return;
+            }
+
+            // --- Fireball Spawning (Only for Level 3) ---
+            if (currentLevel === 3) {
+                fireballSpawners.forEach(spawner => {
+                    spawner.timer++;
+                    // Use modulo for continuous spawning after delay
+                    if (spawner.delay > 0) {
+                         if (spawner.timer >= spawner.delay) {
+                             spawner.delay = 0; // Remove delay after first time
+                             spawner.timer = 0; // Reset timer to start interval timing
+                         }
+                    } else if (spawner.timer >= spawner.interval) {
+                        spawner.timer = 0; // Reset interval timer
+                        // Spawn a fireball
+                        fireballs.push({
+                            x: spawner.x,
+                            y: camera.y + canvas.height + 50, // Start below camera view
+                            width: 85,  // Adjusted width
+                            height: 187, // Adjusted height
+                            velocityY: -20, // Slower upward velocity
+                            gameFrame: 0,
+                            staggerFrames: 8 // Animation speed for fireball
+                        });
+                    }
+                });
+            }
+
+
+            // Update Projectiles (Snowballs)
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const proj = projectiles[i];
+                proj.x += proj.velocityX;
+                proj.y += proj.velocityY;
+                // Remove if off-screen
+                if (proj.x < camera.x - 100 || proj.x > camera.x + canvas.width + 100 || proj.y > camera.y + canvas.height + 100) { // Adjusted check for camera
+                    projectiles.splice(i, 1);
+                }
+            }
+             // Update Fireballs
+             for (let i = fireballs.length - 1; i >= 0; i--) {
+                const fb = fireballs[i];
+                fb.velocityY += gravity * 0.5; // Apply gravity
+                fb.y += fb.velocityY;
+                fb.gameFrame++;
+                // Remove if fallen off bottom (relative to camera)
+                if (fb.y > camera.y + canvas.height + 100) {
+                    fireballs.splice(i, 1);
+                }
+             }
+
+            // Snow particle update (only when currentLevel loads original L3 data)
+            if (currentLevel === 2) { // SWAPPED: Snow now appears on new Level 2
+                snowParticles.forEach(p => {
+                    p.y += p.speedY;
+                    // Reset snow that falls off screen
+                    if (p.y > canvas.height) {
+                        p.y = 0;
+                        p.x = Math.random() * canvas.width;
+                    }
+                });
+            }
+
+            // Platforms & Decorations
+            platforms.forEach(p => {
+                if (p.initialY) {
+                    // Increased amplitude and speed for floating platforms
+                    p.y = p.initialY + Math.sin(Date.now() * 0.002 + p.x) * 20;
+                }
+            });
+
+            // Enemies
+            enemies.forEach(e => {
+                if (e.isDying) {
+                    e.velocityY += gravity * 0.5; // Fall down
+                    e.y += e.velocityY;
+                    e.deathTimer--;
+                    return; // Skip normal movement logic if dying
+                }
+
+                if (e.type === 'bird') {
+                    const distanceX = player.x - e.initialX;
+                    const distanceY = player.y - e.initialY;
+                    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+                    if (distance < e.detectionRange) {
+                        e.state = 'attacking';
+                    } else {
+                        e.state = 'hovering';
+                    }
+
+                    let targetY;
+                    if (e.state === 'attacking') {
+                        targetY = e.initialY; // Swoop down to attack position
+                    } else {
+                        targetY = e.hoverY; // Return to high hover position
+                    }
+
+                    // Smoothly move towards the targetY
+                    e.y += (targetY - e.y) * 0.02;
+
+                    // Keep horizontal circular motion
+                    const radius = 30;
+                    e.x = e.initialX + Math.cos(Date.now() * e.speed + e.initialY) * radius;
+
+                } else if (e.type === 'rat' || e.type === 'snowman') {
+                    const platform = platforms[e.platformIndex];
+                    if (platform) {
+                        const minX = platform.x;
+                        const maxX = platform.x + platform.width - e.width;
+                        e.x += e.speed * e.direction;
+                        if (e.x <= minX || e.x >= maxX) {
+                            e.direction *= -1;
+                        }
+                        e.y = platform.y - e.height; // Make sure it stays on the platform
+                    }
+                    // Snowman specific attack logic
+                    if (e.type === 'snowman') {
+                        if (e.fireCooldown > 0) {
+                            e.fireCooldown--;
+                        }
+                        const distanceX = (player.x + player.width / 2) - (e.x + e.width / 2);
+                        const distanceY = (player.y + player.height / 2) - (e.y + e.height / 2);
+                        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+                        if (distance < e.detectionRange && e.fireCooldown <= 0) {
+                            e.fireCooldown = 90; // 1.5 seconds cooldown
+                            const speed = 8; // Faster snowballs
+                            const angle = Math.atan2(distanceY, distanceX);
+                            projectiles.push({
+                                x: e.x + e.width / 2,
+                                y: e.y + e.height / 2,
+                                width: 15,
+                                height: 15,
+                                velocityX: Math.cos(angle) * speed,
+                                velocityY: Math.sin(angle) * speed,
+                            });
+                        }
+                    }
+                }
+                 else { // Default circular motion for butterflies
+                    const radius = 30;
+                    const speed = e.speed;
+                    e.x = e.initialX + Math.cos(Date.now() * speed + e.initialY) * radius;
+                    e.y = e.initialY + Math.sin(Date.now() * speed + e.initialY) * radius;
+                }
+                e.gameFrame++;
+            });
+
+            // Player Movement
+            if (keys.left) { player.velocityX -= player.speed; player.direction = 'left'; }
+            if (keys.right) { player.velocityX += player.speed; player.direction = 'right'; }
+            player.velocityX = Math.max(-10, Math.min(10, player.velocityX));
+
+            if (player.isFlying) {
+                if (keys.up) {
+                    player.velocityY = -5; // Fly up
+                } else if (keys.down) {
+                    player.velocityY = 5; // Fly down
+                } else {
+                    player.velocityY = 0; // Hover
+                }
+                player.flightTimer--;
+                 // Removed flight timer display update
+                if (player.flightTimer <= 0) {
+                    player.isFlying = false;
+                    wingFlapSound.pause();
+                    // Removed flight timer display hide
+                }
+            } else {
+                 // Removed flight timer display hide check
+                if (keys.upPressed && player.jumps < player.maxJumps) {
+                    player.velocityY = -player.jumpPower;
+                    player.isJumping = true;
+                    player.jumps++;
+                    keys.upPressed = false;
+                    jumpSound.currentTime = 0;
+                    jumpSound.play().catch(e => console.warn("Jump sound couldn't play:", e));
+                }
+                 // Physics
+                player.velocityY += gravity;
+            }
+
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            player.velocityX *= currentFriction;
+
+
+            // Sounds
+            const isWalking = !player.isJumping && Math.abs(player.velocityX) > 1 && !player.isFlying;
+            if (isWalking && walkSound.paused) { walkSound.play().catch(e => console.warn("Walk sound couldn't play:", e)); }
+            else if (!isWalking && !walkSound.paused) { walkSound.pause(); walkSound.currentTime = 0; }
+
+            // Animation
+            if (Math.abs(player.velocityX) > 0.1 || player.isFlying) { player.gameFrame++; }
+            else { player.gameFrame = 0; }
+
+            // Invincibility Timer
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) { player.invincible = false; }
+            }
+
+            // --- Platform Collision Detection ---
+            let onPlatform = false;
+            if (!player.isDying && !player.isFlying) {
+                for (const p of platforms) {
+                    // Only check for landing if the player is moving downwards.
+                    if (player.velocityY >= 0) {
+                        const playerLeft = player.x + 40; // Narrow hitbox
+                        const playerRight = player.x + player.width - 40; // Narrow hitbox
+
+                        // Check for horizontal overlap
+                        if (playerRight > p.x && playerLeft < p.x + p.width) {
+                            const previousPlayerBottom = (player.y + player.height) - player.velocityY;
+
+                            // Check if player's feet have crossed the platform's top surface in this frame
+                            if (previousPlayerBottom <= p.y + 1) { // +1 for tolerance
+                                const currentPlayerBottom = player.y + player.height;
+                                if (currentPlayerBottom >= p.y) {
+                                    // Landed!
+                                    player.y = p.y - player.height; // Snap to top
+                                    player.velocityY = 0;
+                                    player.isJumping = false;
+                                    player.jumps = 0;
+                                    onPlatform = true;
+                                    if (p.isGoal) {
+                                        showMessage(winScreen);
+                                        return; // Exit update loop
+                                    }
+                                    break; // Stop checking other platforms
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            if (!onPlatform && !player.isFlying) { player.isJumping = true; }
+
+            for (const c of coins) {
+                if (c.active && player.x < c.x + c.width && player.x + player.width > c.x &&
+                    player.y < c.y + c.height && player.y + player.height > c.y) {
+                    c.active = false;
+                    score += 10;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    coinSound.currentTime = 0;
+                    coinSound.play().catch(e => console.warn("Coin sound couldn't play:", e));
+                }
+            }
+
+            // Power-up Collision
+            for (const p of powerUps) {
+                if (p.active && player.x < p.x + p.width && player.x + player.width > p.x &&
+                    player.y < p.y + p.height && player.y + player.height > p.y) {
+                    p.active = false;
+                    if (p.type === 'feather') {
+                        player.isFlying = true;
+                        player.flightTimer = 480; // 8 seconds * 60 fps
+                        powerupSound.currentTime = 0;
+                        powerupSound.play().catch(e => console.warn("Powerup sound couldn't play:", e));
+
+                        // Play wing sound regardless of mute state
+                        wingFlapSound.currentTime = 0;
+                        wingFlapSound.playbackRate = 3.38; // Make sound faster
+                        wingFlapSound.play().catch(e => console.warn("Wing sound couldn't play:", e));
+                    }
+                }
+            }
+
+            // Hazard Collision (Removed thorn bush logic)
+
+            // Enemy and Projectile/Fireball collision logic
+            if (!player.invincible) {
+                // Projectile (Snowball) collision
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    const proj = projectiles[i];
+                    if (player.x < proj.x + proj.width && player.x + player.width > proj.x &&
+                        player.y < proj.y + proj.height && player.y + player.height > proj.y) {
+
+                        projectiles.splice(i, 1); // Remove snowball on hit
+
+                        // Player gets hurt
+                        player.health--;
+                        updateHealthBar();
+                        player.invincible = true;
+                        player.invincibleTimer = 120;
+                        hurtSound.currentTime = 0;
+                        hurtSound.play().catch(err => console.warn("Hurt sound couldn't play:", err));
+                        player.isFlying = false;
+                        wingFlapSound.pause();
+                        player.velocityY = -10;
+                        player.velocityX = (player.x < proj.x) ? -10 : 10;
+                        if (player.health <= 0) {
+                            startDeathSequence();
+                            return; // Exit update loop
+                        }
+                    }
+                }
+                 // Fireball collision
+                 for (let i = fireballs.length - 1; i >= 0; i--) {
+                    const fb = fireballs[i];
+                     // Slightly adjusted hitbox for fireballs (using new height)
+                    if (player.x < fb.x + fb.width - 10 && player.x + player.width > fb.x + 10 &&
+                        player.y < fb.y + fb.height - 10 && player.y + player.height > fb.y + 10) {
+
+                        // Don't remove fireball on hit - let it pass through
+                        // fireballs.splice(i, 1);
+
+                        // Player gets hurt
+                        player.health--;
+                        updateHealthBar();
+                        player.invincible = true;
+                        player.invincibleTimer = 120;
+                        hurtSound.currentTime = 0;
+                        hurtSound.play().catch(err => console.warn("Hurt sound couldn't play:", err));
+                        player.isFlying = false;
+                        wingFlapSound.pause();
+                        player.velocityY = -10; // Knockback up
+                        player.velocityX = (player.x + player.width / 2 < fb.x + fb.width / 2) ? -10 : 10; // Knockback left/right
+                        if (player.health <= 0) {
+                            startDeathSequence();
+                            return; // Exit update loop
+                        }
+                         break; // Only take damage from one fireball per frame if overlapping
+                    }
+                 }
+
+
+                for (const e of enemies) {
+                     if (e.isDying || player.invincible) continue; // Skip dead enemies or if player is invincible
+
+                     if (player.x < e.x + e.width && player.x + player.width > e.x &&
+                         player.y < e.y + e.height && player.y + player.height > e.y) {
+
+                         // Check for stomp
+                         const isStomp = player.velocityY > 0 && (player.y + player.height) < (e.y + e.height / 2);
+
+                         if (isStomp) {
+                             e.isDying = true;
+                             e.deathTimer = 60; // 1 second
+                             e.velocityY = -5; // Enemy pops up
+                             player.velocityY = -15; // Player bounces
+                             player.jumps = 1; // Allow one more jump mid-air
+                             stompSound.currentTime = 0;
+                             stompSound.play().catch(err => console.warn("Stomp sound couldn't play:", err));
+                             score += 20;
+                             scoreDisplay.textContent = `Score: ${score}`;
+                         } else {
+                             // Player gets hurt
+                             player.health--;
+                             updateHealthBar();
+                             player.invincible = true;
+                             player.invincibleTimer = 120; // 2 seconds of invincibility
+                             hurtSound.currentTime = 0;
+                             hurtSound.play().catch(err => console.warn("Hurt sound couldn't play:", err));
+                             player.isFlying = false; // Knocked out of the air
+                             wingFlapSound.pause(); // Stop flight sound on hit
+                             player.velocityY = -10; // Knockback
+                             player.velocityX = (player.x < e.x + e.width / 2) ? -10 : 10;
+                             if (player.health <= 0) {
+                                 startDeathSequence();
+                                 return;
+                             }
+                             break; // Stop checking other enemies for this frame
+                         }
+                     }
+                 }
+            }
+
+
+            // Boundaries
+            if (player.x < 0) { player.x = 0; player.velocityX = 0; }
+            if (player.x + player.width > levelWidth) { player.x = levelWidth - player.width; player.velocityX = 0; }
+
+            // Camera
+            camera.x = player.x - canvas.width / 2.5;
+            if (camera.x < 0) camera.x = 0;
+            if (camera.x > levelWidth - canvas.width) camera.x = levelWidth - canvas.width;
+
+            // Lose Condition
+            if (player.y > camera.y + canvas.height + 200) { // Check relative to camera bottom + buffer
+                player.health--;
+                updateHealthBar();
+                if (player.health <= 0) {
+                    startDeathSequence();
+                } else {
+                    gameOverSound.currentTime = 0;
+                    gameOverSound.play().catch(e => console.warn("Game over sound couldn't play:", e));
+                    // Respawn logic <<< CHANGED TO START POSITION
+                    player.x = 100; // Go back to level start X
+                    player.y = 400; // Go back to level start Y
+                    player.velocityX = 0;
+                    player.velocityY = 0;
+                    player.invincible = true; // Make invincible briefly after respawn
+                    player.invincibleTimer = 120;
+                    camera.x = 0; // Reset camera to the start as well
+                }
+            }
+
+
+            // Filter out dead enemies
+            enemies = enemies.filter(e => !e.isDying || e.deathTimer > 0);
+        }
+
+        // --- STABLE DRAW FUNCTION ---
+        function draw() {
+            // Base background color
+            ctx.fillStyle = '#0c0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // --- Define Layers for current level ---
+            let bgLayers = [];
+            let fgLayer = {};
+            let platformImgKey; // Key to access the correct platform image
+
+            // SWAPPED DRAW LOGIC
+            if (currentLevel === 1) {
+                bgLayers = [
+                    { img: images.level1FarBg, speed: 0.25 },
+                    { img: images.level1Bg, speed: 0.5 }
+                ];
+                fgLayer = { img: images.level1Foreground, speed: 2.0, scale: 1.0 };
+                platformImgKey = 'platform';
+            } else if (currentLevel === 2) { // New Level 2 uses Original L3 assets
+                bgLayers = [
+                    { img: images.level3FarBg, speed: 0.25, scale: 0.6, alignTop: true },
+                    { img: images.level3Bg, speed: 0.5, scale: 0.5, yOffsetPercent: 0.25 }
+                ];
+                fgLayer = { img: images.level3Foreground, speed: 2.0, scale: 1.25/3 };
+                platformImgKey = 'platform3';
+            } else if (currentLevel === 3) { // New Level 3 uses Original L2 assets
+                bgLayers = [
+                    { img: images.level2FarBg, speed: 0.25 },
+                    { img: images.level2Bg, speed: 0.5 }
+                ];
+                // Scale was 1/3, doubling it to 2/3
+                fgLayer = { img: images.level2Foreground, speed: 2.0, scale: 2/3 }; // Changed scale
+                platformImgKey = 'platform2';
+            }
+
+
+            // --- Draw Background Layers ---
+            bgLayers.forEach(layer => {
+                if (!layer.img || !layer.img.complete || layer.img.naturalHeight === 0) {
+                     // console.warn(`Background layer image not ready or invalid: ${layer.img ? layer.img.src : 'undefined'}`); // Reduce console noise
+                     return;
+                }
+
+                const scale = layer.scale || 1.0;
+                const drawWidth = layer.img.width * scale;
+                const drawHeight = layer.img.height * scale;
+
+                let yPos = canvas.height - drawHeight; // Default to bottom anchor
+                if (layer.alignTop) {
+                    yPos = 0;
+                } else if (layer.yOffsetPercent) {
+                    const yOffset = canvas.height * layer.yOffsetPercent;
+                    yPos -= yOffset;
+                }
+
+                const parallaxX = camera.x * layer.speed;
+                const startX = -(parallaxX % drawWidth);
+                for (let i = 0; (startX + (i * drawWidth)) < canvas.width; i++) {
+                    ctx.drawImage(layer.img, startX + i * drawWidth, yPos, drawWidth, drawHeight);
+                }
+            });
+
+             // --- ADD LIGHTNING FLASH EFFECT for Level 3 ---
+            if (currentLevel === 3) {
+                const flashInterval = 4000; // 4 seconds in milliseconds
+                const flashDuration = 100; // 0.1 seconds in milliseconds
+                const time = Date.now();
+                if (time % flashInterval < flashDuration) {
+                    // Draw a semi-transparent white overlay
+                    ctx.save(); // Save context state
+                    // Keep flash relative to screen, not world
+                    ctx.globalAlpha = 0.4; // Set transparency
+                    ctx.fillStyle = '#FFFFFF'; // White color
+                    ctx.fillRect(0, 0, canvas.width, canvas.height); // Draw over entire canvas
+                    ctx.restore(); // Restore original context state (alpha, fillStyle)
+                }
+            }
+
+
+            // Snow is drawn AFTER backgrounds, only on new level 2 (original L3)
+            if (currentLevel === 2) { // SWAPPED
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                snowParticles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+
+            // --- GAME OBJECTS (World Space) ---
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            platforms.forEach(p => {
+                let platformImg = images[platformImgKey]; // Use the determined key
+                if (p.isGoal) platformImg = images.goalPlatform;
+
+                if(platformImg && platformImg.complete && platformImg.naturalHeight > 0) {
+                    // Optimized platform drawing slightly
+                    const tileWidth = platformImg.width;
+                    const numTiles = Math.ceil(p.width / tileWidth);
+                    for (let i = 0; i < numTiles; i++) {
+                         const drawX = p.x + (i * tileWidth);
+                         // Prevent drawing fully outside the camera view (simple optimization)
+                         if (drawX + tileWidth > camera.x && drawX < camera.x + canvas.width) {
+                            ctx.drawImage(platformImg, drawX, p.y, tileWidth, p.height);
+                         }
+                    }
+                }
+            });
+
+
+            decorations.forEach(d => {
+                const platform = platforms[d.platformIndex];
+                // Ensure the image exists and the platform index is valid before drawing
+                if (d.img && platform && d.img.complete && d.img.naturalHeight > 0) {
+                    const decorY = d.hangs ? platform.y + platform.height : platform.y - d.height;
+                    // Check if decorY is a valid number before drawing
+                    if (isFinite(decorY)) {
+                         // Simple culling
+                         if (d.x + d.width > camera.x && d.x < camera.x + canvas.width) {
+                             ctx.drawImage(d.img, d.x, decorY, d.width, d.height);
+                         }
+                    } else {
+                         // console.warn("Invalid decorY calculated for decoration:", d); // Reduce noise
+                    }
+                } else if (!platform && d.platformIndex !== undefined) { // Added check for undefined index
+                     // console.warn("Platform not found for decoration:", d); // Reduce noise
+                }
+            });
+
+
+            coins.forEach(c => {
+                if (c.active && images.coin && images.coin.complete) {
+                    // Simple culling
+                     if (c.x + c.width > camera.x && c.x < camera.x + canvas.width) {
+                        const coinY = c.initialY + Math.sin(Date.now() * 0.005 + c.x) * 5;
+                        ctx.drawImage(images.coin, c.x, coinY, c.width, c.height);
+                     }
+                }
+            });
+
+            powerUps.forEach(p => {
+                if (p.active && images.feather && images.feather.complete) {
+                     // Simple culling
+                     if (p.x + p.width > camera.x && p.x < camera.x + canvas.width) {
+                        const powerUpY = p.initialY + Math.sin(Date.now() * 0.002 + p.x) * 20;
+                        if (p.type === 'feather') {
+                            ctx.drawImage(images.feather, p.x, powerUpY, p.width, p.height);
+                        }
+                     }
+                }
+            });
+
+            // Draw Hazards (Removed thorn bush logic)
+
+            enemies.forEach(e => {
+                if (e.isDying && Math.floor(Date.now() / 100) % 2 !== 0) return;
+                 // Simple culling
+                 if (e.x + e.width < camera.x || e.x > camera.x + canvas.width) return;
+
+                let frame1, frame2;
+                if (e.type === 'butterfly') { frame1 = images.enemy1; frame2 = images.enemy2; }
+                else if (e.type === 'bird') { frame1 = images.level2Enemy1; frame2 = images.level2Enemy2; } // Uses original L2 bird images
+                else if (e.type === 'rat') { frame1 = images.rat1; frame2 = images.rat2; } // Uses original L2 rat images
+                else if (e.type === 'snowman') { frame1 = images.snowman1; frame2 = images.snowman2; } // Uses original L3 snowman images
+
+                if (!frame1 || !frame1.complete || !frame2 || !frame2.complete) return;
+
+                const frame = Math.floor(e.gameFrame / e.staggerFrames) % 2 === 0 ? frame1 : frame2;
+                ctx.save();
+                if (e.direction === -1) {
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(frame, -e.x - e.width, e.y, e.width, e.height);
+                } else {
+                    ctx.drawImage(frame, e.x, e.y, e.width, e.height);
+                }
+                ctx.restore();
+            });
+
+            // Player
+            const isInvincibleBlink = player.invincible && Math.floor(Date.now() / 100) % 2 !== 0;
+            const isFlightEndingBlink = player.isFlying && player.flightTimer <= 120 && Math.floor(Date.now() / 100) % 2 !== 0;
+
+            if (!isInvincibleBlink && !isFlightEndingBlink) {
+                let currentImage;
+                const isRunning = Math.abs(player.velocityX) > 0.1;
+                // Sliding logic depends on current level friction setting (set in setup functions)
+                const isSliding = currentFriction > 0.8 && isRunning && !keys.left && !keys.right && !player.isJumping;
+
+                if (player.isFlying) {
+                    const flightStaggerFrames = 12;
+                    currentImage = (Math.floor(player.gameFrame / flightStaggerFrames) % 2 === 0) ? images.playerJump : images.playerFly;
+                }
+                else if (player.isDying || player.isJumping) { currentImage = images.playerJump; }
+                else if (isSliding) { currentImage = images.playerIdle; }
+                else if (isRunning) { currentImage = (Math.floor(player.gameFrame / player.staggerFrames) % 2 === 0) ? images.playerRun1 : images.playerRun2; }
+                else { currentImage = images.playerIdle; }
+
+                if (currentImage && currentImage.complete && currentImage.naturalHeight > 0) {
+                    ctx.save();
+                    let playerDrawY = player.y;
+                    if (player.isFlying) {
+                        const hoverAmplitude = 10;
+                        const hoverSpeed = 0.003;
+                        playerDrawY += Math.sin(Date.now() * hoverSpeed) * hoverAmplitude;
+                    }
+
+                    if (player.direction === 'left') {
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(currentImage, -player.x - player.width, playerDrawY, player.width, player.height);
+                    } else {
+                        ctx.drawImage(currentImage, player.x, playerDrawY, player.width, player.height);
+                    }
+                    ctx.restore();
+                }
+            }
+
+            // Draw Projectiles (Snowballs)
+            projectiles.forEach(proj => {
+                 // Simple culling
+                 if (proj.x + proj.width > camera.x && proj.x < camera.x + canvas.width) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.strokeStyle = '#87CEEB';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(proj.x, proj.y, proj.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                 }
+            });
+             // Draw Fireballs
+             fireballs.forEach(fb => {
+                 // Simple culling
+                 if (fb.x + fb.width > camera.x && fb.x < camera.x + canvas.width) {
+                    const frame = Math.floor(fb.gameFrame / fb.staggerFrames) % 2 === 0 ? images.fireball1 : images.fireball2;
+                    if (frame && frame.complete && frame.naturalHeight > 0) {
+                         ctx.drawImage(frame, fb.x, fb.y, fb.width, fb.height);
+                    }
+                 }
+            });
+
+
+            ctx.restore(); // End world space drawing
+
+            // --- Draw Foreground Layer ---
+            if (fgLayer.img && fgLayer.img.complete && fgLayer.img.naturalHeight > 0) {
+                const scale = fgLayer.scale || 1.0;
+                const drawWidth = fgLayer.img.width * scale;
+                const drawHeight = fgLayer.img.height * scale;
+                const parallaxX = camera.x * fgLayer.speed;
+                const startX = -(parallaxX % drawWidth);
+                for (let i = 0; (startX + (i * drawWidth)) < canvas.width; i++) {
+                    // Check if tile is on screen before drawing
+                    const tileX = startX + i * drawWidth;
+                    if(tileX + drawWidth > 0 && tileX < canvas.width) {
+                       ctx.drawImage(fgLayer.img, tileX, canvas.height - drawHeight, drawWidth, drawHeight);
+                    }
+                }
+            }
+
+        }
+
+        // --- UI & Utility Functions ---
+        function updateHealthBar() {
+            healthBar.innerHTML = '';
+            for (let i = 0; i < player.health; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                healthBar.appendChild(heart);
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            menuBgCanvas.width = window.innerWidth;
+            menuBgCanvas.height = window.innerHeight;
+            // Re-create snow if the current level should have it (now level 2)
+            if(gameActive && currentLevel === 2) createSnow();
+        }
+
+        // --- Menu Animation ---
+        let menuAnimationId;
+        const menuBgState = {
+            frames: ['menuBg1', 'menuBg2', 'menuBg3', 'menuBg4', 'menuBg5', 'menuBg6'],
+            currentFrame: 0,
+            direction: 1,
+            timer: 0,
+            delay: 15
+        };
+
+        function menuAnimationLoop() {
+            const currentImage = images[menuBgState.frames[menuBgState.currentFrame]];
+            if (currentImage && currentImage.complete && currentImage.naturalHeight > 0) {
+                menuBgCtx.drawImage(currentImage, 0, 0, menuBgCanvas.width, menuBgCanvas.height);
+            }
+
+            menuBgState.timer++;
+            if (menuBgState.timer > menuBgState.delay) {
+                menuBgState.timer = 0;
+                if (menuBgState.currentFrame >= menuBgState.frames.length - 1 && menuBgState.direction === 1) {
+                    menuBgState.direction = -1;
+                } else if (menuBgState.currentFrame <= 0 && menuBgState.direction === -1) {
+                    menuBgState.direction = 1;
+                }
+                menuBgState.currentFrame += menuBgState.direction;
+            }
+
+            menuAnimationId = requestAnimationFrame(menuAnimationLoop);
+        }
+
+        function startMenuAnimation() {
+            console.log("startMenuAnimation called."); // Log: Function called
+            if (!menuAnimationId) {
+                resizeCanvas();
+                menuAnimationLoop();
+                // Set initial selection on main menu
+                updateMenuSelection('main');
+                console.log("Menu animation loop started."); // Log: Loop started
+            } else {
+                 console.log("Menu animation already running."); // Log: Already running
+            }
+        }
+
+        function stopMenuAnimation() {
+            if (menuAnimationId) {
+                cancelAnimationFrame(menuAnimationId);
+                menuAnimationId = null;
+                menuMusic.pause();
+                 console.log("Menu animation stopped."); // Log: Stopped
+            }
+        }
+
+        // Initialize
+        window.onload = () => {
+            console.log("Window loaded. Starting image loading process."); // Log: Window onload
+            resizeCanvas();
+            loadImages();
+            muteButton.style.display = 'block';
+        };
+
+        window.addEventListener('resize', resizeCanvas);
+
+    </script>
+</body>
+</html>
