@@ -178,14 +178,14 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 120px;
+            height: 220px;
             display: none; /* Initially hidden, controlled by JS */
             z-index: 20;
         }
 
         .mobile-button {
             position: absolute;
-            bottom: 30px;
+            
             width: 70px;
             height: 70px;
             background: rgba(255, 255, 255, 0.25);
@@ -202,9 +202,9 @@
             background: rgba(255, 255, 255, 0.4);
         }
 
-        #mobile-left { left: 30px; }
-        #mobile-right { left: 120px; }
-        #mobile-jump { right: 30px; }
+        #mobile-up { right: 170px; bottom: 110px; } #mobile-down { right: 170px; bottom: 20px; } #mobile-left { right: 240px; bottom: 65px; }
+        #mobile-right { right: 100px; bottom: 65px; }
+        #mobile-jump { right: 15px; bottom: 65px; width: 90px; height: 90px; font-size: 20px; background: rgba(80,160,255,0.35); }
 
     </style>
 </head>
@@ -272,9 +272,11 @@
 
     <!-- Mobile Controls (hidden during gameplay by JS) -->
     <div id="mobile-controls">
+                    <div id="mobile-up" class="mobile-button">▲</div>
         <div id="mobile-left" class="mobile-button">◀</div>
         <div id="mobile-right" class="mobile-button">▶</div>
-        <div id="mobile-jump" class="mobile-button">▲</div>
+                    <div id="mobile-down" class="mobile-button">▼</div>
+        <div id="mobile-jump" class="mobile-button">JUMP</div>
     </div>
 
     <!-- Audio Elements -->
@@ -339,6 +341,9 @@
         const mobileLeft = document.getElementById('mobile-left');
         const mobileRight = document.getElementById('mobile-right');
         const mobileJump = document.getElementById('mobile-jump');
+                const mobileUp = document.getElementById('mobile-up');
+                const mobileDown = document.getElementById('mobile-down');
+                const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
 
         // Set volume for specific sounds
@@ -1070,6 +1075,10 @@
             keys.up = false;
             keys.upPressed = false;
         });
+                mobileUp.addEventListener('touchstart', (e) => { e.preventDefault(); keys.up = true; });
+                mobileUp.addEventListener('touchend', (e) => { e.preventDefault(); keys.up = false; });
+                mobileDown.addEventListener('touchstart', (e) => { e.preventDefault(); keys.down = true; });
+                mobileDown.addEventListener('touchend', (e) => { e.preventDefault(); keys.down = false; });
 
         // --- Game Flow & Menu Navigation ---
         function handleMenuInput(e, menuType) {
@@ -1163,7 +1172,7 @@
             scoreDisplay.style.display = 'block';
             healthBar.style.display = 'block';
             muteButton.style.display = 'block';
-            mobileControls.style.display = 'none'; // Keep mobile controls hidden during gameplay
+            mobileControls.style.display = isTouchDevice ? 'block' : 'none'; // Show mobile controls on touch devices during gameplay
             // Removed flightTimerDisplay line
 
             scoreDisplay.textContent = `Score: ${score}`;
@@ -1265,7 +1274,7 @@
             } else {
                 gameActive = true; // Set game to active when unpaused
                 pauseScreen.style.display = 'none';
-                mobileControls.style.display = 'none'; // Keep hidden when unpaused too
+                mobileControls.style.display = isTouchDevice ? 'block' : 'none'; // Show mobile controls again when resumed
                 if (!isMuted && currentBgMusic) {
                     currentBgMusic.play().catch(e => console.warn("BG music couldn't resume:", e));
                 }
